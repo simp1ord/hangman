@@ -1,43 +1,28 @@
-require_relative 'saves.rb'
 
-word_bank = File.read("google-10000-english-no-swears.txt").split(' ')
+require 'yaml'
 
 module GameplayFunctions
 
   protected
 
-
-  def game_begin
-    @game_selection = ''
-    puts "Hello! Welcome to the classic one-on-one version of Hangman"
-    puts "The computer makes up a word, you have to guess it!"
-    puts "You have 7 guesses to get it right, otherwise, you lose!"
-    if Dir.empty?('/Users/jeremiahkemp/TOP/hangman/saves')
-      puts "Are you ready to play?"
-      @game_selection = gets.chomp
-      puts "Of course you are! Lets begin"
-      self.word_selection()
-    else
-      while @game_selection != 'c' || @game_selection != 'n'
-        puts "Do you want to do a new game or contiunue an older one ?  (N/n for new, C/c for continue"
-        @game_selection = gets.chomp.downcase
-      end
-    end
-  end
-
   def player_guess
     @guess = ''  
-      while @guess.length != 1
-        puts "Guess a letter."
-        @guess = gets.chomp.downcase
+      until @guess.length == 1 || @guess == 'save'
+        puts "Guess a letter. Or Type save to save this game."
+        @guess = gets.chomp.downcase.gsub(/[^a-z ^A-Z]/, '')
       end
   end
 
   def guess_check
-    @word_selected.each_with_index do |letter, index|
-      if @guess == letter
-        @guess_storage.delete_at(index)
-        @guess_storage.insert(index, @guess)
+    if @guess == 'save'
+      self.save_game()
+    else
+      @word_selected.each_with_index do |letter, index|
+        if @guess == letter
+          @guess_storage.delete_at(index)
+          @guess_storage.insert(index, @guess)
+          @game_rounds += 1
+        end
       end
     end
   end
@@ -46,7 +31,7 @@ module GameplayFunctions
     @guessed_letters.push(@guess)
       @display_guesses = @guessed_letters.join()
       @visual_word = @guess_storage.join()
-      puts "#{@visual_word} #{@display_guesses}"
+      puts "word : #{@visual_word} guessed letters : #{@display_guesses}"
   end
 
   def win_check
@@ -57,6 +42,21 @@ module GameplayFunctions
       @win_game = true  
     end
   end
+
+  def save_game
+    puts "What would you like to name this game?"
+    @file_name = gets.chomp
+    @file_position = "saves/#{@file_name}"
+    File.open("#{@file_position}.yml", "w") do |file| 
+      file.write(new_game.to_yaml)
+    end
+    game_end()
+  end
+  
+  def game_end
+    abort "Thanks for playing, rerun to continue!"
+  end
+
 end
 
 
@@ -76,10 +76,9 @@ class HangmanGameplay
     @guessed_letters = []
     @win_game = false
     @guess_storage = []
-    @game_selection = ''
     @word_selected = ''
     @game_rounds = 12
-    self.game_begin()
+    self.word_selection
   end
 
   protected
@@ -93,19 +92,18 @@ class HangmanGameplay
   end
 
   def guess_word
-    while @game_rounds > 0 || @win_game == false
+    until @game_rounds == 0 || @win_game == true
       puts "You have #{@game_rounds} guesses left!"
         self.player_guess()
         self.guess_check()
         self.game_display
         self.win_check()
-        puts "Sorry, the word was #{@final_word}"
-      @game_rounds -= 1
+        @game_rounds -= 1
     end
-    @final_word = @word_selected.join('')
-    puts "Sorry, the word was #{@final_word}"
+    if @win_game != true
+      @final_word = @word_selected.join('')
+      puts "Sorry, the word was #{@final_word}"
+    end
   end
 
 end
-
-new_game = HangmanGameplay.new(word_bank)
