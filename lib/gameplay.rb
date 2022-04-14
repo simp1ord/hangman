@@ -3,6 +3,16 @@ require 'yaml'
 
 module GameplayFunctions
 
+  def load_game 
+    File.open("#{@file_position}.yml", "w") do |file| 
+      puts "What file do you want to load? Just type the name, not the .yml"
+  saved_files = Dir.entries("saves")
+  puts "#{saved_files}"
+  chosen_file = gets.chomp
+  game_file = YAML.load(File.read("saves/#{chosen_file}.yml"))
+  chosen_file.guess_word()
+  end
+
   protected
 
   def player_guess
@@ -44,11 +54,9 @@ module GameplayFunctions
   end
 
   def save_game
-    puts "What would you like to name this game?"
-    @file_name = gets.chomp
     @file_position = "saves/#{@file_name}"
     File.open("#{@file_position}.yml", "w") do |file| 
-      file.write(new_game.to_yaml)
+      YAML.dump(self, file)
     end
     game_end()
   end
@@ -71,24 +79,15 @@ class HangmanGameplay
                 :guessed_letters,
                 :game_rounds
 
-  def initialize(word_bank)
+  def initialize(word_bank, new_file_name)
     @@word_bank = word_bank
     @guessed_letters = []
     @win_game = false
     @guess_storage = []
     @word_selected = ''
     @game_rounds = 12
+    @file_name = new_file_name
     self.word_selection
-  end
-
-  protected
-
-  def word_selection
-    while (@word_selected.length < 5) || (@word_selected.length > 12)
-    @word_selected = (@@word_bank.sample).split('')
-    end
-    @guess_storage = Array.new(@word_selected.length) {'_'}
-    self.guess_word()
   end
 
   def guess_word
@@ -105,5 +104,16 @@ class HangmanGameplay
       puts "Sorry, the word was #{@final_word}"
     end
   end
+  
+  protected
+
+  def word_selection
+    while (@word_selected.length < 5) || (@word_selected.length > 12)
+    @word_selected = (@@word_bank.sample).split('')
+    end
+    @guess_storage = Array.new(@word_selected.length) {'_'}
+    self.guess_word()
+  end
+
 
 end
